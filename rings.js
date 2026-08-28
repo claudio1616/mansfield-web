@@ -110,8 +110,8 @@
     bloomSpread: 0.3,    /* the halo's falloff, as a fraction of the body's */
     bloomGain: 0.1,
     horizon: 0.74,       /* radius where a front gives out, on its way off the edge */
-    arc: 0.55,           /* how far off the horizontal axis a front reaches, at birth */
-    arcEnd: 0.35,        /* and once it is far out */
+    arc: 0.70,           /* how far off the horizontal axis a front reaches, at birth */
+    arcEnd: 0.55,        /* and once it is far out */
     baseRadius: 0.32,    /* where every front is born; stands well clear of the wordmark */
     scaleRate: 0.48,     /* the whole journey, out past the side edge of the frame */
     ease: 0.85,          /* gentle deceleration as a front spreads */
