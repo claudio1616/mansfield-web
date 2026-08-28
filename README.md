@@ -20,8 +20,20 @@ Then open http://localhost:4173/
 
 ## Deploy
 
-Drag the folder into Vercel, Netlify, or Cloudflare Pages — no configuration.
-`info.html` is served at `/info` on all three.
+Cloudflare Pages, connected to this repo. Every push to `main` publishes;
+branches get preview URLs.
+
+```
+build command      sh build-pages.sh
+output directory   _site
+framework preset   none
+```
+
+`build-pages.sh` copies the six site files plus `_headers` into `_site/` — that
+is the whole build. `info.html` is served at `/info`, and `/info.html`
+308-redirects there.
+
+Live at **msfd.vc**, registered at Hostinger with DNS delegated to Cloudflare.
 
 ## The ring field
 
@@ -40,13 +52,3 @@ Two knobs worth knowing:
 
 The palette is fixed dark on purpose: the rings are a light-emission effect and
 only read against a dark ground.
-
-## Before going live
-
-`grep -rn PLACEHOLDER .` finds the three spots that need real values:
-
-- contact address in `info.html` (currently `hello@mansfield.vc`)
-- canonical domain in `index.html` and `info.html`
-
-To stay out of search results, uncomment the `robots` meta tag near the top of
-both HTML files.
