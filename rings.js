@@ -20,11 +20,11 @@
     'precision highp float;',
     '',
     'uniform float uTime, uAttenuation, uLineThickness;',
-    'uniform float uBaseRadius, uRadiusStep, uScaleRate;',
+    'uniform float uBaseRadius, uScaleRate, uEase;',
     'uniform float uOpacity, uNoiseAmount, uRotation;',
     'uniform float uFadeIn, uFadeOut;',
     'uniform float uCoreGain, uDisperse, uBloomSpread, uBloomGain, uGlow;',
-    'uniform float uUnit, uHorizon, uArc, uSweep;',
+    'uniform float uUnit, uHorizon, uArc, uArcEnd;',
     'uniform float uMouseInfluence, uHoverAmount, uHoverScale, uParallax, uBurst;',
     'uniform vec2 uResolution, uMouse;',
     'uniform vec3 uColor, uColorTwo;',
@@ -32,17 +32,17 @@
     '',
     'const float HP = 1.5707963;',
     'const float CYCLE = 3.45;',
-    'const float GOLDEN = 2.39996;',
     '',
     'float fade(float t) {',
     '  return t < uFadeIn ? smoothstep(0.0, uFadeIn, t) : 1.0 - smoothstep(uFadeOut, CYCLE - 0.2, t);',
     '}',
     '',
-    'float ring(vec2 p, float ri, float fi, float t0, float px) {',
-    '  float t = mod(uTime + t0, CYCLE);',
+    'float ring(vec2 p, float t, float px) {',
     '  float prog = t / CYCLE;',
-    '  float r = ri + prog * uScaleRate;',
-    '  float d = abs(length(p) - r);',
+    /* every front runs the same journey, easing off slightly as it spreads */
+    '  float r = uBaseRadius + pow(prog, uEase) * uScaleRate;',
+    '  float len = length(p);',
+    '  float d = abs(len - r);',
     '  float a = atan(abs(p.y), abs(p.x)) / HP;',
     '  float th = max(1.0 - a, 0.5) * px * uLineThickness;',
     '  float core = (1.0 - smoothstep(th, th * 1.5, d)) * uCoreGain;',
@@ -50,14 +50,15 @@
     '  float att = uAttenuation / (1.0 + uDisperse * prog);',
     '  float body = exp(-att * d);',
     '  float bloom = exp(-att * uBloomSpread * d) * uBloomGain;',
-    /* and it gives out as it passes the frame edge, rather than surviving as a
-       pair of bright arcs off the left and right sides */
+    /* and gives out on its way off the frame edge, so it leaves gracefully
+       rather than simply running out of layer */
     '  float horizon = 1.0 - smoothstep(uHorizon, uHorizon + 0.35, r);',
-    /* A front is an arc, not a closed ring — one soft segment whose heading is set
-       by the golden angle per front and drifts slowly, so nothing ever traces a
-       whole circle around the mark. */
-    '  float ang = atan(p.y, p.x) - fi * GOLDEN - uTime * uSweep;',
-    '  float arc = smoothstep(uArc, 1.0, cos(ang));',
+    /* A front is an arc, not a closed ring, and it is anchored to the horizontal
+       axis and mirrored: the visible arcs run vertically down each side of the
+       mark and travel outward off the edges. The arc opens further round the mark
+       the further out the front has got. */
+    '  float ax = abs(p.x) / max(len, 1e-4);',
+    '  float arc = smoothstep(mix(uArc, uArcEnd, prog), 1.0, ax);',
     '  return (core + body + bloom) * fade(t) * horizon * arc * uGlow;',
     '}',
     '',
@@ -70,15 +71,20 @@
     '  float sc = mix(1.0, uHoverScale, uHoverAmount) + uBurst * 0.3;',
     '  p /= sc;',
     '  vec3 c = vec3(0.0);',
-    '  float rcf = max(float(uRingCount) - 1.0, 1.0);',
     '  for (int i = 0; i < 10; i++) {',
     '    if (i >= uRingCount) break;',
     '    float fi = float(i);',
+    /* Evenly spaced births on one shared journey: a new front sets out from the
+       mark as the one ahead of it is leaving. Nothing keys off the index — that
+       is what used to make them surface out of order. A front's birth is a real
+       event rather than a phase offset, so the page opens empty and fills as the
+       first front runs: before its turn its age is negative, clamped to 0, and
+       fade(0) is exactly 0. */
+    '    float age = uTime - CYCLE * fi / float(uRingCount);',
+    '    float t = mod(max(age, 0.0), CYCLE);',
     '    vec2 pr = p - fi * uParallax * uMouse;',
-    '    vec3 rc = mix(uColor, uColorTwo, fi / rcf);',
-    /* golden-ratio stagger: spreads the fronts across the cycle without lockstep */
-    '    float t0 = mod(fi * CYCLE * 0.618, CYCLE);',
-    '    c += rc * ring(pr, uBaseRadius + fi * uRadiusStep, fi, t0, px);',
+    /* warm where a front is born, cooling with distance travelled */
+    '    c += mix(uColor, uColorTwo, t / CYCLE) * ring(pr, t, px);',
     '  }',
     '  c *= 1.0 + uBurst * 2.0;',
     '  float n = fract(sin(dot(gl_FragCoord.xy + uTime * 100.0, vec2(12.9898, 78.233))) * 43758.5453);',
@@ -91,23 +97,24 @@
      born around the wordmark and dissolve on their way past the viewport edge.
      Colours come from CSS custom properties so the page keeps one palette. */
   var P = {
-    speed: 0.26,
+    speed: 0.07,        /* a front takes ~50s to cross; one sets out every ~10s */
+    /* the clock starts here, not at zero: the page opens with a front already
+       under way and the next just emerging, rather than bare */
+    headStart: 1.0,
     ringCount: 5,
-    glow: 0.3,           /* light level of one front; keeps peaks off the ceiling */
+    glow: 0.34,          /* light level of one front; keeps peaks off the ceiling */
     attenuation: 42,     /* loose falloff, so a front reads as glow not as a line */
     lineThickness: 1.8,
     coreGain: 0.15,      /* the centre line, dimmed well clear of blowing out */
     disperse: 1.6,       /* how much a front blurs over its own travel */
     bloomSpread: 0.3,    /* the halo's falloff, as a fraction of the body's */
     bloomGain: 0.1,
-    horizon: 0.38,       /* radius where a front starts giving out; 0.5 is the frame */
-    arc: -0.05,          /* how much of a circle a front covers; higher is shorter */
-    sweep: 0.15,         /* how fast the arcs drift around the mark */
-    baseRadius: 0.25,    /* clears the wordmark */
-    radiusStep: 0.085,
-    /* travel is one full step: each front hands off to where the next begins,
-       so they never bunch up into a single fat band */
-    scaleRate: 0.085,
+    horizon: 0.74,       /* radius where a front gives out, on its way off the edge */
+    arc: 0.55,           /* how far off the horizontal axis a front reaches, at birth */
+    arcEnd: 0.35,        /* and once it is far out */
+    baseRadius: 0.32,    /* where every front is born; stands well clear of the wordmark */
+    scaleRate: 0.48,     /* the whole journey, out past the side edge of the frame */
+    ease: 0.85,          /* gentle deceleration as a front spreads */
     noiseAmount: 0.025,  /* dither: wide dim gradients band on near-black */
     rotation: 0,
     fadeIn: 0.7,
@@ -177,9 +184,9 @@
   gl.clearColor(0, 0, 0, 0);
 
   var U = {};
-  ['uTime', 'uAttenuation', 'uLineThickness', 'uBaseRadius', 'uRadiusStep',
+  ['uTime', 'uAttenuation', 'uLineThickness', 'uBaseRadius', 'uEase',
    'uScaleRate', 'uOpacity', 'uNoiseAmount', 'uRotation',
-   'uFadeIn', 'uFadeOut', 'uArc', 'uSweep', 'uCoreGain', 'uDisperse', 'uBloomSpread', 'uBloomGain',
+   'uFadeIn', 'uFadeOut', 'uArc', 'uArcEnd', 'uCoreGain', 'uDisperse', 'uBloomSpread', 'uBloomGain',
    'uGlow', 'uUnit', 'uHorizon',
    'uMouseInfluence', 'uHoverAmount', 'uHoverScale',
    'uParallax', 'uBurst', 'uResolution', 'uMouse', 'uColor', 'uColorTwo',
@@ -220,14 +227,14 @@
     gl.uniform1f(U.uGlow, P.glow);
     gl.uniform1f(U.uHorizon, P.horizon);
     gl.uniform1f(U.uArc, P.arc);
-    gl.uniform1f(U.uSweep, P.sweep);
+    gl.uniform1f(U.uArcEnd, P.arcEnd);
     gl.uniform1f(U.uUnit, unit);
     gl.uniform1f(U.uCoreGain, P.coreGain);
     gl.uniform1f(U.uDisperse, P.disperse);
     gl.uniform1f(U.uBloomSpread, P.bloomSpread);
     gl.uniform1f(U.uBloomGain, P.bloomGain);
     gl.uniform1f(U.uBaseRadius, P.baseRadius);
-    gl.uniform1f(U.uRadiusStep, P.radiusStep);
+    gl.uniform1f(U.uEase, P.ease);
     gl.uniform1f(U.uScaleRate, P.scaleRate);
     gl.uniform1f(U.uOpacity, theme.opacity);
     gl.uniform1f(U.uNoiseAmount, P.noiseAmount);
@@ -250,16 +257,16 @@
   resize();
 
   if (reduce.matches) {
-    /* one still frame, on a beat where the fronts sit well spread, so the mark is
-       never bare but nothing moves */
-    var STILL = 1.2;
+    /* one still frame, taken from deep in the steady state rather than the opening,
+       so the mark is never bare but nothing moves */
+    var STILL = 8.1;
     draw(STILL);
     mount.classList.add('is-live');
     window.addEventListener('resize', function () { resize(); draw(STILL); });
     return;
   }
 
-  var frame = 0, elapsed = 0, last = 0, visible = false;
+  var frame = 0, elapsed = P.headStart, last = 0, visible = false;
 
   function tick(t) {
     frame = requestAnimationFrame(tick);

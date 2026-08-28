@@ -11,7 +11,6 @@
   --paper: #08080a;          /* near-black, a touch cool */
   --ink: #f4f2ee;            /* warm off-white, softer than pure #fff */
   --muted: #78787e;
-  --rule: rgba(244, 242, 238, 0.16);
   --pad: clamp(1.5rem, 4vw, 3.25rem);
 
   /* Field rings: warm bone drifting to cool steel. Desaturated enough that it
@@ -154,22 +153,15 @@ a:focus-visible {
    the viewport with the browser toolbars expanded, i.e. the worst case. */
 
 .page-info .stage {
-  padding-block: min(var(--pad), 6svh) calc(min(var(--pad), 6svh) + var(--bar-h));
+  padding-block: calc(min(var(--pad), 6svh) + var(--bar-h));
 }
 
 .column {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
 }
-
-.wordmark--sm {
-  font-size: min(5.2vw, 4.6svh, 2.5rem);
-  margin-bottom: min(4rem, 6vw, 7.4svh);
-}
-
-.wordmark--sm:hover { color: inherit; }
 
 .prose {
   max-width: 34rem;
@@ -181,14 +173,19 @@ a:focus-visible {
 
 .prose p { margin: 0 0 min(1.5rem, 2.8svh); }
 
-.contact {
-  padding-top: min(1.5rem, 2.8svh);
-  border-top: 1px solid var(--rule);
+.prose p:last-child { margin-bottom: 0; }
+
+/* The text arrives rather than simply being there: a plain opacity fade, no
+   movement, everything at once. Matches the reference, where each element ships
+   at opacity 0 and is faded up together on load. The small delay keeps it from
+   racing the 400ms body fade every page already carries. */
+@keyframes arrive { to { opacity: 1; } }
+
+.page-info .prose p,
+.page-info .bar {
+  opacity: 0;
+  animation: arrive 1800ms ease 120ms forwards;
 }
-
-.contact a { border-bottom: 1px solid var(--rule); }
-
-.contact a:hover { border-bottom-color: currentColor; }
 
 /* Landscape phones and very short windows: spacing alone cannot recover ~40%
    of the height, so the type comes down and the rhythm tightens too. */
@@ -205,7 +202,7 @@ a:focus-visible {
   .page-info { --bar-h: calc(2 * min(var(--pad), 4svh) + 1.2rem); }
 
   .page-info .stage {
-    padding-block: min(var(--pad), 4svh) calc(min(var(--pad), 4svh) + var(--bar-h));
+    padding-block: calc(min(var(--pad), 4svh) + var(--bar-h));
   }
 }
 
@@ -213,4 +210,10 @@ a:focus-visible {
   body { animation: none; }
   .rings { transition: none; }
   * { transition: none !important; }
+
+  .page-info .prose p,
+  .page-info .bar {
+    opacity: 1;
+    animation: none;
+  }
 }
