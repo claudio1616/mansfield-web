@@ -21,20 +21,40 @@ Then open http://localhost:4173/
 
 ## Deploy
 
-Cloudflare Pages, connected to this repo. Every push to `main` publishes;
-branches get preview URLs.
+**msfd.vc is served by GitHub Pages**, from `main`, path `/` — the repo root is
+the site. Every push to `main` publishes. Verified against the live headers
+(`x-github-request-id`, Fastly `x-served-by`) and `gh api repos/:owner/:repo/pages`.
+
+Cloudflare sits in front as the proxy only: the domain is registered at Hostinger
+with DNS delegated to Cloudflare, orange-clouded at GitHub Pages. It is not
+Cloudflare Pages, whatever this file used to claim.
+
+Two consequences worth knowing:
+
+- **`_headers` does nothing.** GitHub Pages ignores it. Static assets are served
+  `max-age=14400` and HTML `max-age=600`, and that is not configurable. The file
+  is kept for the day the site moves to a host that reads it.
+- **`build-pages.sh` is not what publishes.** It collects the site into `_site/`
+  for a Cloudflare Pages-style host. Nothing runs it today, but any new file must
+  still be added to its `cp` line or a future move to that host drops it.
+
+`info.html` is served at `/info.html`; the extensionless `/info` works because
+GitHub Pages resolves it.
+
+### After a deploy that adds a file
+
+GitHub Pages caches 404s on its CDN for four hours, **per edge POP**. Request a
+not-yet-published asset during a build and that POP serves the 404 for the rest
+of the TTL while other POPs serve the file — the site then half-works depending
+on where the visitor is. Do not poll for a new asset until the build reports
+`built`:
 
 ```
-build command      sh build-pages.sh
-output directory   _site
-framework preset   none
+gh api repos/claudio1616/mansfield-web/pages/builds/latest --jq .status
 ```
 
-`build-pages.sh` copies the seven site files plus `_headers` into `_site/` — that
-is the whole build. `info.html` is served at `/info`, and `/info.html`
-308-redirects there.
-
-Live at **msfd.vc**, registered at Hostinger with DNS delegated to Cloudflare.
+A stale negative cache clears on the next successful build, so pushing again is
+the fix if it happens.
 
 ## The ring field
 
