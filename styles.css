@@ -1,3 +1,17 @@
+/* Geist (SIL Open Font Licence 1.1), latin subset, variable across 300-600 so a
+   single file covers Light, Regular and Medium. Self-hosted rather than pulled
+   from Google's CDN: the brand mark then renders identically on every platform,
+   and the page makes no third-party request at all, which is the point of a site
+   that ships noindex. */
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 300 600;
+  font-display: swap;
+  src: url("geist-latin-var.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   /* Footer link band: 2 x its vertical padding + the 0.75rem/1.6 line box.
      The stage reserves this at the bottom of pages whose content could reach it. */
@@ -45,7 +59,7 @@ body {
   flex-direction: column;
   background: var(--paper);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Inter, Arial, sans-serif;
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   font-size: 1rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -83,7 +97,8 @@ a:focus-visible {
 
 .bar nav a {
   font-size: 0.75rem;
-  letter-spacing: 0.16em;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -104,11 +119,12 @@ a:focus-visible {
   display: block;
   margin: 0;
   font-size: min(7.6vw, 6rem);
-  font-weight: 400;
-  letter-spacing: 0.24em;
+  font-weight: 300;
+  letter-spacing: 0.18em;
   /* letter-spacing adds a trailing space after the D; pull it back off the
-     box so the glyphs, not the box, are what gets optically centred */
-  margin-right: -0.24em;
+     box so the glyphs, not the box, are what gets optically centred. Tracks
+     letter-spacing exactly — change one and change the other. */
+  margin-right: -0.18em;
   text-transform: uppercase;
   line-height: 1;
   white-space: nowrap;
@@ -175,6 +191,8 @@ a:focus-visible {
   /* ceiling stays 1.125rem as before; the floor drops to 0.875rem so a narrow
      phone can wrap fewer lines rather than overflow */
   font-size: max(0.875rem, min(1.125rem, 1.6vw));
+  line-height: 1.58;
+  letter-spacing: -0.01em;
   text-wrap: pretty;
 }
 

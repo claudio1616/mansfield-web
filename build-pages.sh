@@ -3,4 +3,4 @@
 set -eu
 rm -rf _site
 mkdir -p _site
-cp index.html info.html styles.css rings.js favicon.svg robots.txt _headers _site/
+cp index.html info.html styles.css rings.js geist-latin-var.woff2 favicon.svg robots.txt _headers _site/

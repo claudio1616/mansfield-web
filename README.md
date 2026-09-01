@@ -5,8 +5,9 @@ Static site. No build step, no dependencies, no framework.
 ```
 index.html    wordmark over the ring field
 info.html     the three sentences
-styles.css    palette, layout, ring brightness
+styles.css    palette, type, layout, ring brightness
 rings.js      the ring field (vanilla WebGL)
+geist-latin-var.woff2   Geist, latin subset, variable 300-600
 favicon.svg
 ```
 
@@ -29,7 +30,7 @@ output directory   _site
 framework preset   none
 ```
 
-`build-pages.sh` copies the six site files plus `_headers` into `_site/` — that
+`build-pages.sh` copies the seven site files plus `_headers` into `_site/` — that
 is the whole build. `info.html` is served at `/info`, and `/info.html`
 308-redirects there.
 
